@@ -56,8 +56,8 @@ def main():
         return
 
     window.title("Game Library Manager")
-    window.geometry("900x550")
-    window.minsize(700, 400)
+    window.geometry("1000x600")
+    window.minsize(850, 450)
     window.configure(bg=BACKGROUND)
 
     header = tk.Frame(window, bg=BACKGROUND)
@@ -82,6 +82,42 @@ def main():
     toolbar = tk.Frame(window, bg=BACKGROUND)
     toolbar.pack(fill="x", padx=24, pady=(0, 12))
 
+    search_frame = tk.Frame(window, bg=BACKGROUND)
+    search_frame.pack(fill="x", padx=24, pady=(0, 16))
+
+    search_var = tk.StringVar()
+    status_filter_var = tk.StringVar(value="Semua")
+
+    tk.Label(
+        search_frame,
+        text="Cari judul:",
+        bg=BACKGROUND,
+        fg=TEXT_COLOR,
+    ).pack(side="left", padx=(0, 8))
+
+    search_entry = ttk.Entry(
+        search_frame,
+        textvariable=search_var,
+        width=28,
+    )
+    search_entry.pack(side="left", fill="x", expand=True)
+
+    tk.Label(
+        search_frame,
+        text="Status:",
+        bg=BACKGROUND,
+        fg=TEXT_COLOR,
+    ).pack(side="left", padx=(16, 8))
+
+    status_filter = ttk.Combobox(
+        search_frame,
+        textvariable=status_filter_var,
+        values=("Semua", *STATUSES),
+        state="readonly",
+        width=13,
+    )
+    status_filter.pack(side="left")
+
     table_frame = ttk.Frame(window)
     table_frame.pack(
         fill="both",
@@ -105,7 +141,7 @@ def main():
         table.heading(column, text=heading)
         table.column(column, width=130, minwidth=80)
 
-    table.column("title", width=240)
+    table.column("title", width=280)
 
     scrollbar = ttk.Scrollbar(
         table_frame,
@@ -129,7 +165,7 @@ def main():
 
     def refresh_table(select_id=None):
         try:
-            games = get_games()
+            all_games = get_games()
         except sqlite3.Error as error:
             messagebox.showerror(
                 "Gagal membaca koleksi",
@@ -138,10 +174,28 @@ def main():
             )
             return
 
+        keyword = search_var.get().strip().casefold()
+        selected_status = status_filter_var.get()
+
+        visible_games = []
+
+        for game in all_games:
+            title = game[1]
+            status = game[4]
+
+            matches_title = keyword in title.casefold()
+            matches_status = (
+                selected_status == "Semua"
+                or status == selected_status
+            )
+
+            if matches_title and matches_status:
+                visible_games.append(game)
+
         for item in table.get_children():
             table.delete(item)
 
-        for game in games:
+        for game in visible_games:
             game_id, title, platform, genre, status, rating = game
             rating_display = "-" if rating is None else f"{rating:g}/10"
 
@@ -158,20 +212,35 @@ def main():
                 ),
             )
 
-        if games:
+        total = len(all_games)
+        visible = len(visible_games)
+
+        if total == 0:
             footer_text.set(
-                f"Total koleksi: {len(games)} game. "
-                "Pilih baris untuk mengedit atau menghapus."
+                "Koleksi masih kosong. Klik Tambah Game untuk memulai."
+            )
+        elif visible == 0:
+            footer_text.set(
+                f"Tidak ada hasil yang cocok. Total koleksi: {total} game."
             )
         else:
             footer_text.set(
-                "Koleksi masih kosong. Klik Tambah Game untuk memulai."
+                f"Menampilkan {visible} dari {total} game. "
+                "Pilih baris untuk mengedit atau menghapus."
             )
 
         if select_id is not None and table.exists(str(select_id)):
             table.selection_set(str(select_id))
             table.focus(str(select_id))
             table.see(str(select_id))
+
+    def apply_filters():
+        refresh_table()
+
+    def reset_filters():
+        search_var.set("")
+        status_filter_var.set("Semua")
+        refresh_table()
 
     def get_selected_game():
         selection = table.selection()
@@ -265,7 +334,9 @@ def main():
             )
 
         title_entry = ttk.Entry(
-            form, textvariable=title_var, width=32
+            form,
+            textvariable=title_var,
+            width=32,
         )
         title_entry.grid(row=1, column=1, sticky="ew", pady=8)
 
@@ -292,7 +363,9 @@ def main():
         ).grid(row=4, column=1, sticky="ew", pady=8)
 
         ttk.Entry(
-            form, textvariable=rating_var, width=32
+            form,
+            textvariable=rating_var,
+            width=32,
         ).grid(row=5, column=1, sticky="ew", pady=8)
 
         ttk.Label(
@@ -337,6 +410,10 @@ def main():
                 return
 
             dialog.destroy()
+
+            # Tampilkan hasil simpan meskipun sebelumnya ada filter.
+            search_var.set("")
+            status_filter_var.set("Semua")
             refresh_table(select_id=saved_id)
 
         buttons = ttk.Frame(form)
@@ -422,6 +499,24 @@ def main():
         text="Muat Ulang",
         command=refresh_table,
     ).pack(side="left", padx=(8, 0))
+
+    ttk.Button(
+        search_frame,
+        text="Cari",
+        command=apply_filters,
+    ).pack(side="left", padx=(8, 0))
+
+    ttk.Button(
+        search_frame,
+        text="Reset",
+        command=reset_filters,
+    ).pack(side="left", padx=(8, 0))
+
+    search_entry.bind("<Return>", lambda event: apply_filters())
+    status_filter.bind(
+        "<<ComboboxSelected>>",
+        lambda event: apply_filters(),
+    )
 
     refresh_table()
     window.deiconify()
