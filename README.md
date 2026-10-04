@@ -4,11 +4,11 @@ A desktop application for organizing a personal game collection
 and tracking games from backlog to completion.
 
 Built with **Python, Tkinter, and SQLite**, with a
-**Zimuru Style v1.0** interface.
+**Zimuru Style v1.1 — Pearl White** interface.
 
 ## Preview
 
-![Game Library Manager — Zimuru Style](screenshots/dashboard.png)
+![Game Library Manager — Zimuru Style Pearl White](screenshots/pearl-white.png)
 
 The screenshot shows an example collection.
 Game data is stored locally and is not bundled with the repository.
@@ -16,10 +16,11 @@ Game data is stored locally and is not bundled with the repository.
 ## Features
 
 - **Add games** with a title, platform, genre, status, and optional rating.
-- **Browse your collection** in a table.
+- **Browse your collection** in a responsive card grid or a detailed table.
+- **View original pastel cover placeholders** generated locally from the title and genre.
 - **Edit games** using the Edit button or by double-clicking a row.
 - **Delete games** with confirmation.
-- **Search titles** without case sensitivity.
+- **Search titles live** without case sensitivity, or press Enter to search immediately.
 - **Filter by status** using the sidebar or dropdown.
 - **Combine search and filtering** to narrow the results.
 - **Reset filters** to display the entire collection.
@@ -27,30 +28,38 @@ Game data is stored locally and is not bundled with the repository.
 - **Validate inputs**, including required fields and ratings from 0 to 10.
 - **View collection counts** and messages when no results are found.
 
+Click a card or table row to select a game.
 Edit and Delete buttons become available when a game is selected.
+Each card also provides an **Edit detail** action.
+The selected game stays selected when switching between **Kartu** and **Tabel**.
 
 ## Design — Zimuru Style
 
-The interface follows **Zimuru Style v1.0**, a design identity
+The interface follows **Zimuru Style v1.1 — Pearl White**, a design identity
 by Muhammad Zidane Naufal Azzam.
 
-Its visual direction combines midnight surfaces, ice blue accents,
-clear spacing, and restrained layering.
+Its visual direction combines pearl white surfaces, ice blue accents,
+charcoal typography, clear spacing, and restrained layering.
+The default view is a card collection with a light sidebar and rounded toolbar.
+Cards reflow as the window changes size; the collection scrolls vertically.
 
 | Element | Color |
 |---|---|
-| Background | `#080D14` |
-| Main surface | `#111923` |
-| Raised surface | `#182330` |
-| Primary text | `#F3F7FC` |
-| Secondary text | `#A7B6C8` |
+| Soft background | `#F7F9FC` |
+| Main surface | `#FFFFFF` |
+| Secondary surface | `#F0F4F8` |
+| Primary text | `#17212B` |
+| Secondary text | `#526174` |
 | Ice blue accent | `#8CCFFF` |
 
-The active sidebar item uses an ice blue indicator.
+The active sidebar item uses a thin blue indicator on an ice blue tint.
 Status labels remain visible alongside their color cues.
 
-This Tkinter implementation uses solid surfaces and subtle borders
-as a fallback for glass effects. It does not implement background blur.
+This Tkinter implementation uses opaque white surfaces, subtle borders,
+and custom rounded panels as a portable fallback for glass effects.
+It does not implement background blur or transparent liquid glass.
+Pastel illustrations are original placeholders, not downloaded game covers.
+Existing SQLite data and the database schema are unchanged.
 
 ## Technology
 
@@ -131,20 +140,28 @@ or entered manually.
 Ratings accept a decimal point or decimal comma, such as `8.5` or `8,5`.
 An empty rating is displayed as `-`.
 
+### Choose a View
+
+- Click **Kartu** for pastel cards with genre, platform, status, and rating.
+- Click **Tabel** for a compact view of the same game details.
+- Click a card to select it, then use **Edit** or **Hapus**.
+- The sidebar counts represent the complete collection, independent of search.
+
 ### Edit a Game
 
-1. Select a row.
-2. Click **Edit**, or double-click the row.
+1. Select a card or table row.
+2. Click **Edit**, click **Edit detail** on a card, or double-click a table row.
 3. Update the details.
 4. Click **Simpan Game**.
 
 Click **Batal** or press Escape to close the form without saving.
 
-After adding or editing a game, filters reset and the saved row is selected.
+After adding or editing a game, filters reset and the saved game is selected.
+The card and table views show the same underlying collection.
 
 ### Delete a Game
 
-1. Select a row.
+1. Select a card or table row.
 2. Click **Hapus**.
 3. Confirm the deletion.
 
@@ -153,7 +170,7 @@ Confirmed deletion cannot be undone from the application.
 
 ### Search and Filter
 
-- Enter part of a title and click **Cari**, or press Enter.
+- Enter part of a title. Results update after a short pause, or immediately when you press Enter.
 - Choose a status from the sidebar or dropdown.
 - Search and status filters work together.
 - Click **Reset** to clear the search and show all statuses.
@@ -175,9 +192,12 @@ Filtering only changes the displayed results; it does not delete data.
 | File | Purpose |
 |---|---|
 | `main.py` | Zimuru Style GUI, forms, navigation, search, and filters |
+| `pearl_ui.py` | Pearl White tokens, rounded surfaces, status labels, and cover placeholders |
 | `database.py` | SQLite operations and shared input validation |
 | `.gitignore` | Excludes local data, caches, and environment folders |
-| `screenshots/dashboard.png` | Application preview |
+| `screenshots/pearl-white.png` | Current application preview |
+| `screenshots/dashboard.png` | Previous dark-theme preview |
+| `tests/test_pearl_ui.py` | Display-backed UI integration checks |
 | `README.md` | Setup, usage, and project documentation |
 | `data/games.db` | Local database created automatically; excluded from Git |
 
@@ -191,6 +211,24 @@ to use the application.
 
 The `data/` folder is excluded from version control.
 Deleting `games.db` removes the collection stored in that file.
+
+## Automated GUI Checks
+
+Run with a desktop display available:
+
+```bash
+python3 -m unittest discover -s tests -v
+```
+
+For headless Linux, install Xvfb and run:
+
+```bash
+xvfb-run -a python3 -m unittest discover -s tests -v
+```
+
+The tests use a temporary database. They cover CRUD forms and validation,
+selection between views, search plus filtering, empty states, and resizing.
+They skip when no supported display is configured.
 
 ## Manual Verification Checklist
 
@@ -218,11 +256,12 @@ Use these checks when validating changes:
 
 - Local storage only; no cloud synchronization.
 - No automatic imports from Steam or other game platforms.
-- No cover artwork support.
+- No imported cover artwork support; cards use abstract placeholders.
 - No packaged executable yet.
 - Search loads the collection and filters it in Python.
 - System message dialogs may look different across operating systems.
-- Glass blur and rounded ttk controls are not implemented.
+- Glass blur and rounded native ttk controls are not implemented; panels are rounded.
+- Long titles and metadata may be shortened on cards; the table and edit form retain the full data.
 
 ## Learning Goals
 
