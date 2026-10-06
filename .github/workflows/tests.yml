@@ -1,0 +1,25 @@
+name: Python Tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    name: Test Game Library Manager
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install GUI test dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-tk xvfb
+
+      - name: Show Python version
+        run: python3 --version
+
+      - name: Run automated tests
+        run: xvfb-run -a python3 -m unittest discover -s tests -v
