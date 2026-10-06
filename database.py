@@ -1,5 +1,6 @@
 import math
 import sqlite3
+from contextlib import closing
 from pathlib import Path
 
 
@@ -11,20 +12,21 @@ STATUSES = ("Backlog", "Playing", "Completed", "Dropped")
 def initialize_database():
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
 
-    with sqlite3.connect(DB_PATH) as connection:
-        connection.execute("""
-            CREATE TABLE IF NOT EXISTS games (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                title TEXT NOT NULL CHECK(length(trim(title)) > 0),
-                platform TEXT NOT NULL,
-                genre TEXT NOT NULL,
-                status TEXT NOT NULL DEFAULT 'Backlog'
-                    CHECK(status IN (
-                        'Backlog', 'Playing', 'Completed', 'Dropped'
-                    )),
-                rating REAL CHECK(rating BETWEEN 0 AND 10)
-            )
-        """)
+    with closing(sqlite3.connect(DB_PATH)) as connection:
+        with connection:
+            connection.execute("""
+                CREATE TABLE IF NOT EXISTS games (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    title TEXT NOT NULL CHECK(length(trim(title)) > 0),
+                    platform TEXT NOT NULL,
+                    genre TEXT NOT NULL,
+                    status TEXT NOT NULL DEFAULT 'Backlog'
+                        CHECK(status IN (
+                            'Backlog', 'Playing', 'Completed', 'Dropped'
+                        )),
+                    rating REAL CHECK(rating BETWEEN 0 AND 10)
+                )
+            """)
 
 
 def validate_game(title, platform, genre, status, rating_text):
@@ -62,7 +64,7 @@ def validate_game(title, platform, genre, status, rating_text):
 
 
 def get_games():
-    with sqlite3.connect(DB_PATH) as connection:
+    with closing(sqlite3.connect(DB_PATH)) as connection:
         return connection.execute("""
             SELECT id, title, platform, genre, status, rating
             FROM games
@@ -71,7 +73,7 @@ def get_games():
 
 
 def get_game(game_id):
-    with sqlite3.connect(DB_PATH) as connection:
+    with closing(sqlite3.connect(DB_PATH)) as connection:
         return connection.execute("""
             SELECT id, title, platform, genre, status, rating
             FROM games
@@ -84,13 +86,14 @@ def add_game(title, platform, genre, status, rating_text):
         title, platform, genre, status, rating_text
     )
 
-    with sqlite3.connect(DB_PATH) as connection:
-        cursor = connection.execute("""
-            INSERT INTO games (title, platform, genre, status, rating)
-            VALUES (?, ?, ?, ?, ?)
-        """, values)
+    with closing(sqlite3.connect(DB_PATH)) as connection:
+        with connection:
+            cursor = connection.execute("""
+                INSERT INTO games (title, platform, genre, status, rating)
+                VALUES (?, ?, ?, ?, ?)
+            """, values)
 
-        return cursor.lastrowid
+            return cursor.lastrowid
 
 
 def update_game(game_id, title, platform, genre, status, rating_text):
@@ -98,30 +101,32 @@ def update_game(game_id, title, platform, genre, status, rating_text):
         title, platform, genre, status, rating_text
     )
 
-    with sqlite3.connect(DB_PATH) as connection:
-        cursor = connection.execute("""
-            UPDATE games
-            SET title = ?, platform = ?, genre = ?, status = ?, rating = ?
-            WHERE id = ?
-        """, (*values, game_id))
+    with closing(sqlite3.connect(DB_PATH)) as connection:
+        with connection:
+            cursor = connection.execute("""
+                UPDATE games
+                SET title = ?, platform = ?, genre = ?, status = ?, rating = ?
+                WHERE id = ?
+            """, (*values, game_id))
 
-        if cursor.rowcount == 0:
-            raise ValueError(
-                "Game sudah tidak ditemukan. Muat ulang koleksi."
-            )
+            if cursor.rowcount == 0:
+                raise ValueError(
+                    "Game sudah tidak ditemukan. Muat ulang koleksi."
+                )
 
 
 def delete_game(game_id):
-    with sqlite3.connect(DB_PATH) as connection:
-        cursor = connection.execute("""
-            DELETE FROM games
-            WHERE id = ?
-        """, (game_id,))
+    with closing(sqlite3.connect(DB_PATH)) as connection:
+        with connection:
+            cursor = connection.execute("""
+                DELETE FROM games
+                WHERE id = ?
+            """, (game_id,))
 
-        if cursor.rowcount == 0:
-            raise ValueError(
-                "Game sudah tidak ditemukan. Muat ulang koleksi."
-            )
+            if cursor.rowcount == 0:
+                raise ValueError(
+                    "Game sudah tidak ditemukan. Muat ulang koleksi."
+                )
 
 
 if __name__ == "__main__":
