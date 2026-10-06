@@ -1,5 +1,7 @@
 # Game Library Manager
 
+[![Python Tests](https://github.com/ZidaneNaufal1/game-library-manager/actions/workflows/tests.yml/badge.svg)](https://github.com/ZidaneNaufal1/game-library-manager/actions/workflows/tests.yml)
+
 A desktop application for organizing a personal game collection
 and tracking games from backlog to completion.
 
